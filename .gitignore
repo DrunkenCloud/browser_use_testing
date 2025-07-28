@@ -1,5 +1,6 @@
 dir/
 student-dir/
-conversation.jsonl
-student_conversation.jsonl
+conversation.jsonl/
+student_conversation.jsonl/
 venv/
+.env
