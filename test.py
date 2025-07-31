@@ -40,7 +40,8 @@ async def student_step_hook(agent):
 def get_browser_session():
     profile = BrowserProfile(
         headless=True,
-        viewport={"width": 1280, "height": 1100}
+        viewport={"width": 1280, "height": 1100},
+        user_data_dir=None
     )
     return BrowserSession(browser_profile=profile)
 

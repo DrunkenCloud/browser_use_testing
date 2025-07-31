@@ -10,7 +10,8 @@ teacher_llm = ChatGoogle(model='gemini-2.0-flash-exp')
 
 browser_profile = BrowserProfile(
     headless=True,
-    viewport={"width": 1280, "height": 1100}
+    viewport={"width": 1280, "height": 1100},
+    user_data_dir=None,
 )
 
 browser_session = BrowserSession(browser_profile=browser_profile)
