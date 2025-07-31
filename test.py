@@ -7,10 +7,9 @@ def load_teacher_thoughts(path="thoughts_log.jsonl"):
     with open(path, "r") as f:
         return [json.loads(line) for line in f]
 
-def format_teacher_context(teacher_thoughts, count=3):
-    selected = teacher_thoughts[:count]
+def format_teacher_context(teacher_thoughts):
     blocks = []
-    for i, t in enumerate(selected):
+    for i, t in enumerate(teacher_thoughts):
         blocks.append(
             f"""Step {i}:
 Thinking: {t.get("thinking")}
@@ -26,19 +25,7 @@ Next Goal: {t.get("next_goal")}\n"""
     )
 
 async def student_step_hook(agent):
-    if not hasattr(student_step_hook, "teacher_thoughts"):
-        student_step_hook.teacher_thoughts = load_teacher_thoughts()
-
-    teacher_thoughts = student_step_hook.teacher_thoughts
     student_thoughts = agent.state.history.model_thoughts()
-    current_step = len(student_thoughts) - 1
-
-    if current_step < len(teacher_thoughts):
-        t = teacher_thoughts[current_step]
-        print(f"[STUDENT] Learning from TEACHER Step {current_step}")
-        print("👓 Teacher Thinking:", t.get("thinking"))
-        print("🧠 Student should reflect similarly...")
-
     latest_thought = student_thoughts[-1] if student_thoughts else None
     if latest_thought:
         log_entry = {
@@ -50,37 +37,58 @@ async def student_step_hook(agent):
         with open("student_thoughts.jsonl", "a") as f:
             f.write(json.dumps(log_entry) + "\n")
 
+def get_browser_session():
+    profile = BrowserProfile(
+        headless=True,
+        viewport={"width": 1280, "height": 1100}
+    )
+    return BrowserSession(browser_profile=profile)
+
+async def run_student_with_extend_system_message(llm, session, instructions):
+    agent = Agent(
+        llm=llm,
+        task="Get me the first line from the wikipedia article on flowers (https://en.wikipedia.org/wiki/Flower). If you are stuck on a captcha, stop running.",
+        extend_system_message=instructions,
+        save_conversation_path='student_conversation_extend.jsonl',
+        use_vision=False,
+        browser_session=session,
+    )
+    result = await agent.run(on_step_end=student_step_hook)
+    print("Result with `extend_system_message`:\n", result)
+
+async def run_student_with_message_context(llm, session, instructions):
+    agent = Agent(
+        llm=llm,
+        task="Get me the first line from the wikipedia article on flowers (https://en.wikipedia.org/wiki/Flower). If you are stuck on a captcha, stop running.",
+        message_context=instructions,
+        save_conversation_path='student_conversation_message.jsonl',
+        use_vision=False,
+        browser_session=session,
+    )
+    result = await agent.run(on_step_end=student_step_hook)
+    print("Result with `message_context`:\n", result)
+
+async def run_student_with_override_system_message(llm, session, instructions):
+    agent = Agent(
+        llm=llm,
+        task="Get me the first line from the wikipedia article on flowers (https://en.wikipedia.org/wiki/Flower). If you are stuck on a captcha, stop running.",
+        override_system_message=instructions,
+        save_conversation_path='student_conversation_override.jsonl',
+        use_vision=False,
+        browser_session=session,
+    )
+    result = await agent.run(on_step_end=student_step_hook)
+    print("Result with `override_system_message`:\n", result)
+
 async def main_student():
     teacher_thoughts = load_teacher_thoughts()
+    instructions = format_teacher_context(teacher_thoughts)
+    llm = ChatGoogle(model='gemini-2.0-flash')
+    session = get_browser_session()
 
-    student_llm = ChatGoogle(model='gemini-2.0-flash')
-
-    browser_profile_student = BrowserProfile(
-        headless=True,
-        viewport={"width": 1280, "height": 1100},
-        user_data_dir="/home/drunkencloud/work/maheswari/testing-browser-use/student-dir",
-    )
-
-    browser_session_student = BrowserSession(
-        browser_profile=browser_profile_student,
-    )
-
-    system_prompt = format_teacher_context(teacher_thoughts, count=3)
-
-    student_agent = Agent(
-        llm=student_llm,
-        task="Get me the first line from the wikipedia article on flowers (https://en.wikipedia.org/wiki/Flower). If you are stuck on a captcha, stop running.",
-        system_prompt=system_prompt,
-        save_conversation_path='student_conversation.jsonl',
-        use_vision=False,
-        browser_session=browser_session_student,
-    )
-
-    result = await student_agent.run(
-        on_step_end=student_step_hook
-    )
-
-    print("🎓 Student Agent Result:", result)
+    await run_student_with_extend_system_message(llm, session, instructions)
+    await run_student_with_message_context(llm, session, instructions)
+    await run_student_with_override_system_message(llm, session, instructions)
 
 if __name__ == "__main__":
     asyncio.run(main_student())

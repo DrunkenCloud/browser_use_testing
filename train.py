@@ -28,9 +28,6 @@ async def my_step_hook(agent):
 
     with open(output_path, "a") as f:
         for thought in new_thoughts:
-            if "I have not performed any actions yet. This is the first step" in (thought.evaluation_previous_goal or ""):
-                continue
-
             log_entry = {
                 "thinking": thought.thinking,
                 "evaluation_previous_goal": thought.evaluation_previous_goal,

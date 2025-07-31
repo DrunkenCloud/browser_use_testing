@@ -4,3 +4,7 @@ conversation.jsonl/
 student_conversation.jsonl/
 venv/
 .env
+student-*
+student_*
+teacher-*
+*.jsonl
