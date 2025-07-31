@@ -9,9 +9,8 @@ load_dotenv()
 teacher_llm = ChatGoogle(model='gemini-2.0-flash-exp')
 
 browser_profile = BrowserProfile(
-    headless=True,  # Enable headless mode
-    viewport={"width": 1280, "height": 1100},
-    user_data_dir="/home/drunkencloud/work/maheswari/testing-browser-use/dir",
+    headless=True,
+    viewport={"width": 1280, "height": 1100}
 )
 
 browser_session = BrowserSession(browser_profile=browser_profile)
